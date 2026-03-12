@@ -3,13 +3,19 @@
 完整流程：数据预处理 -> 训练BPE分词器 -> 训练GPT模型
 
 使用方法：
+    # 单文件训练
     python train.py -d ../../data/诡秘之主.txt
-    python train.py -d ../../data/小说.txt -e 5 -b 4
-    python train.py -d ../../data/小说.txt -c 256 -E 512 -L 6 -b 4
+
+    # 多文件训练（传入目录）
+    python train.py -d ../../data/
+
+    # 自定义参数
+    python train.py -d ../../data/ -e 10 -b 4 -lr 3e-4
 """
 
 import os
 import re
+import glob
 import argparse
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -28,7 +34,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="中文小说 GPT 训练")
 
     # 必需参数
-    parser.add_argument("-d", "--data_path", type=str, required=True, help="训练数据文件路径（必需)")
+    parser.add_argument("-d", "--data_path", type=str, required=True, help="训练数据：文件路径或目录（自动扫描所有txt）")
 
     # 可选参数
     parser.add_argument("-o", "--output_dir", type=str, default="./output", help="输出目录 (default: ./output)")
@@ -46,17 +52,30 @@ def parse_args():
 
 
 def load_and_preprocess_data(data_path):
-    """加载并预处理文本数据"""
+    """加载并预处理文本数据（支持文件、目录）"""
     print("\n[阶段1] 加载数据...")
-    print(f"  数据文件: {data_path}")
 
-    if not os.path.exists(data_path):
-        raise FileNotFoundError(f"数据文件不存在: {data_path}")
+    # 支持目录输入
+    if os.path.isdir(data_path):
+        txt_files = glob.glob(os.path.join(data_path, "*.txt"))
+        if not txt_files:
+            raise FileNotFoundError(f"目录下没有txt文件: {data_path}")
+        print(f"  数据目录: {data_path}")
+        print(f"  找到文件: {len(txt_files)}个")
+        all_text = []
+        for txt_file in txt_files:
+            with open(txt_file, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                all_text.append(content)
+                print(f"    - {os.path.basename(txt_file)}: {len(content):,}字符")
+        text = "\n\n".join(all_text)
+    else:
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"数据文件不存在: {data_path}")
+        print(f"  数据文件: {data_path}")
+        with open(data_path, "r", encoding="utf-8") as f:
+            text = f.read()
 
-    with open(data_path, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    # 基本清洗
     text = text.strip()
 
     # 统计信息
@@ -260,6 +279,10 @@ def train_model(
         print(f"  训练损失: {avg_train_loss:.4f}")
         print(f"  验证损失: {avg_val_loss:.4f}")
 
+        # 保存训练日志
+        with open(os.path.join(output_dir, "training.log"), "a") as f:
+            f.write(f"{current_epoch} {avg_train_loss:.4f} {avg_val_loss:.4f}\n")
+
         # 保存最佳模型 + 早停检查
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
@@ -300,6 +323,27 @@ def train_model(
     print("=" * 60)
     print(f"最佳验证损失: {best_val_loss:.4f}")
     print(f"模型已保存: {model_path}")
+
+    # 生成样例文本
+    print("\n" + "=" * 60)
+    print("生成样例文本")
+    print("=" * 60)
+    model.eval()
+    with torch.no_grad():
+        sample_prompt = "第一章"
+        sample_ids = tokenizer.encode(sample_prompt, return_tensors="pt").to(config["device"])
+        sample_output = model.generate(
+            sample_ids,
+            max_length=sample_ids.shape[1] + 100,
+            temperature=0.8,
+            top_p=0.9,
+            do_sample=True,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+        sample_text = tokenizer.decode(sample_output[0], skip_special_tokens=True)
+        print(f"提示: {sample_prompt}")
+        print(f"生成: {sample_text}")
+    print("=" * 60)
 
     return model
 
@@ -399,6 +443,14 @@ def main():
 
     # 保存tokenizer配置
     tokenizer.save_pretrained(os.path.join(output_dir, "model"))
+
+    # 保存训练配置
+    import json
+    config_to_save = {k: v for k, v in config.items() if k != "device"}
+    config_to_save["best_val_loss"] = best_val_loss
+    with open(os.path.join(output_dir, "config.json"), "w") as f:
+        json.dump(config_to_save, f, indent=2, ensure_ascii=False)
+    print(f"配置已保存: {os.path.join(output_dir, 'config.json')}")
 
     print("\n下一步: 运行 python generate.py 生成文本")
 

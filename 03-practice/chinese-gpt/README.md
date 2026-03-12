@@ -10,6 +10,9 @@
 - ✅ 断点续训支持
 - ✅ 早停机制
 - ✅ 验证集评估
+- ✅ 训练日志记录
+- ✅ 自动生成样例
+- ✅ 文本生成功能
 
 ## 🚀 快速开始
 
@@ -33,10 +36,20 @@ python train.py -d ../../data/小说.txt -e 5 -b 4
 python train.py -d ../../data/小说.txt -c 256 -E 512 -L 6 -b 4
 ```
 
-### 3. 生成文本（待添加）
+### 3. 生成文本
 
 ```bash
+# 基础生成
 python generate.py --model output/model --prompt "第一章"
+
+# 自定义参数
+python generate.py --model output/model --prompt "第一章" --length 1000 --temperature 0.9
+
+# 低温度（更确定）
+python generate.py --model output/model --prompt "第一章" --temperature 0.5
+
+# 高温度（更随机）
+python generate.py --model output/model --prompt "第一章" --temperature 1.2
 ```
 
 ## 📂 目录结构
@@ -44,15 +57,16 @@ python generate.py --model output/model --prompt "第一章"
 ```
 chinese-gpt/
 ├── train.py              # 训练脚本
+├── generate.py           # 生成脚本
 ├── README.md             # 本文件
 └── configs/              # 配置文件（可选）
 ```
 
-## ⚙️ 参数说明
+## ⚙️ 训练参数说明
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `-d` | 数据文件路径 | 必需 |
+| `-d` | 数据文件路径或目录 | 必需 |
 | `-o` | 输出目录 | `./output` |
 | `-V` | 词表大小 | 50000 |
 | `-C` | 上下文长度 | 512 |
@@ -63,6 +77,17 @@ chinese-gpt/
 | `-lr` | 学习率 | 5e-4 |
 | `-e` | 训练轮数 | 20 |
 | `-s` | 验证集比例 | 0.05 |
+
+## 📝 生成参数说明
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--model` / `-m` | 模型路径 | 必需 |
+| `--prompt` / `-p` | 生成提示文本 | 必需 |
+| `--length` / `-l` | 生成token数量 | 500 |
+| `--temperature` / `-t` | 温度参数（越高越随机） | 0.8 |
+| `--top_p` | Top-p采样（控制多样性） | 0.9 |
+| `--repetition_penalty` | 重复惩罚 | 1.1 |
 
 ## 📊 模型配置示例
 
@@ -112,11 +137,21 @@ python train.py -d data.txt -c 1024 -E 1024 -L 16 -H 16 -b 2 -e 30
 ```
 output/
 ├── tokenizer.json          # 分词器
-├── model/
-│   ├── config.json         # 模型配置
-│   ├── pytorch_model.bin   # 模型权重
-│   └── checkpoint.pt       # 训练断点（临时）
+├── config.json             # 训练配置（超参数、最佳损失等）
+├── training.log            # 训练日志（每轮损失记录）
+└── model/
+    ├── config.json         # 模型配置
+    ├── pytorch_model.bin   # 模型权重
+    └── checkpoint.pt       # 训练断点（临时，训练完成后删除）
 ```
+
+### training.log 格式
+```
+1 2.3456 2.1234
+2 1.9876 1.8765
+...
+```
+每行：`epoch train_loss val_loss`
 
 ## 🔍 监控训练
 
@@ -154,11 +189,22 @@ output/
 ### 早停机制
 验证损失连续 3 轮不下降时自动停止训练，防止过拟合。
 
-## 🎉 下一步
+## 🎉 完整示例
 
-1. 训练完成后，使用生成脚本生成文本
-2. 尝试不同的温度参数和采样策略
-3. 微调预训练模型
+```bash
+# 1. 训练模型
+python train.py -d ../../data/小说.txt -e 10 -b 4
+
+# 2. 查看训练日志
+cat output/training.log
+
+# 3. 生成文本
+python generate.py --model output/model --prompt "第一章" --length 500
+
+# 4. 尝试不同风格
+python generate.py --model output/model --prompt "话说" --temperature 1.0
+python generate.py --model output/model --prompt "江湖" --temperature 0.7
+```
 
 ---
 
