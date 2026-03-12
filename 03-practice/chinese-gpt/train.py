@@ -1,0 +1,407 @@
+"""
+中文小说 GPT 训练脚本
+完整流程：数据预处理 -> 训练BPE分词器 -> 训练GPT模型
+
+使用方法：
+    python train.py -d ../../data/诡秘之主.txt
+    python train.py -d ../../data/小说.txt -e 5 -b 4
+    python train.py -d ../../data/小说.txt -c 256 -E 512 -L 6 -b 4
+"""
+
+import os
+import re
+import argparse
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torch.optim import AdamW
+from transformers import GPT2Config, GPT2LMHeadModel, PreTrainedTokenizerFast
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from tokenizers.trainers import BpeTrainer
+from tokenizers.pre_tokenizers import Whitespace, CharDelimiterSplit
+from tqdm import tqdm
+import time
+
+
+def parse_args():
+    """解析命令行参数"""
+    parser = argparse.ArgumentParser(description="中文小说 GPT 训练")
+
+    # 必需参数
+    parser.add_argument("-d", "--data_path", type=str, required=True, help="训练数据文件路径（必需)")
+
+    # 可选参数
+    parser.add_argument("-o", "--output_dir", type=str, default="./output", help="输出目录 (default: ./output)")
+    parser.add_argument("-V", "--vocab_size", type=int, default=50000, help="词表大小 (default: 50000)")
+    parser.add_argument("-C", "--context_length", type=int, default=512, help="上下文长度 (default: 512)")
+    parser.add_argument("-E", "--emb_dim", type=int, default=768, help="嵌入维度 (default: 768)")
+    parser.add_argument("-H", "--n_heads", type=int, default=12, help="注意力头数 (default: 12)")
+    parser.add_argument("-L", "--n_layers", type=int, default=12, help="Transformer层数 (default: 12)")
+    parser.add_argument("-b", "--batch_size", type=int, default=8, help="批次大小 (default: 8)")
+    parser.add_argument("--learning_rate", "-lr", type=float, default=5e-4, help="学习率 (default: 5e-4)")
+    parser.add_argument("-e", "--epochs", type=int, default=20, help="训练轮数 (default: 20)")
+    parser.add_argument("-s", "--val_split", type=float, default=0.05, help="验证集比例 (default: 0.05)")
+
+    return parser.parse_args()
+
+
+def load_and_preprocess_data(data_path):
+    """加载并预处理文本数据"""
+    print("\n[阶段1] 加载数据...")
+    print(f"  数据文件: {data_path}")
+
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"数据文件不存在: {data_path}")
+
+    with open(data_path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    # 基本清洗
+    text = text.strip()
+
+    # 统计信息
+    total_chars = len(text)
+    total_lines = text.count("\n") + 1
+
+    print(f"  总字符数: {total_chars:,}")
+    print(f"  总行数: {total_lines:,}")
+
+    # 分割成段落（用于训练BPE）- 按连续空行分割
+    paragraphs = re.split(r"\n{2,}", text)
+    paragraphs = [p.strip() for p in paragraphs if p.strip() and len(p.strip()) > 10]
+    print(f"  有效段落: {len(paragraphs):,}")
+
+    return text, paragraphs
+
+
+def train_bpe_tokenizer(paragraphs, vocab_size, output_dir):
+    """训练中文BPE分词器"""
+    print("\n[阶段2] 训练BPE分词器...")
+
+    os.makedirs(output_dir, exist_ok=True)
+    tokenizer_path = os.path.join(output_dir, "tokenizer.json")
+
+    # 检查是否已存在
+    if os.path.exists(tokenizer_path):
+        temp_tokenizer = Tokenizer.from_file(tokenizer_path)
+        if temp_tokenizer.get_vocab_size() != vocab_size:
+            print(f"  现有分词器词表({temp_tokenizer.get_vocab_size()})与目标({vocab_size})不符，重新训练")
+        else:
+            print(f"  分词器已存在: {tokenizer_path}")
+            tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_path, bos_token="<s>", eos_token="</s>", pad_token="<|pad|>")
+            print(f"  词表大小: {tokenizer.vocab_size}")
+            return tokenizer
+
+    # 创建BPE分词器 - 使用字节级适配中文
+    tokenizer = Tokenizer(BPE(unk_token="<|unk|>"))
+    tokenizer.pre_tokenizer = CharDelimiterSplit(" ")
+
+    # 配置训练器
+    trainer = BpeTrainer(vocab_size=vocab_size, special_tokens=["<|pad|>", "<|unk|>", "<s>", "</s>"], min_frequency=2)
+
+    # 训练
+    print(f"  训练中... (词表大小: {vocab_size})")
+    start_time = time.time()
+    tokenizer.train_from_iterator(paragraphs, trainer)
+    print(f"  训练完成! 耗时: {time.time() - start_time:.1f}秒")
+
+    # 保存
+    tokenizer.save(tokenizer_path)
+    print(f"  已保存: {tokenizer_path}")
+    print(f"  实际词表大小: {tokenizer.get_vocab_size()}")
+
+    # 转换为transformers格式
+    hf_tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_path, bos_token="<s>", eos_token="</s>", pad_token="<|pad|>")
+
+    return hf_tokenizer
+
+
+class NovelDataset(Dataset):
+    """小说数据集"""
+
+    def __init__(self, text, tokenizer, context_length):
+        self.tokenizer = tokenizer
+        self.context_length = context_length
+
+        print("\n[阶段3] 创建数据集...")
+        print("  编码文本...")
+
+        # 分批编码（避免内存问题）
+        chunk_size = 100000
+        all_ids = []
+
+        for i in tqdm(range(0, len(text), chunk_size), desc="  编码进度"):
+            chunk = text[i : i + chunk_size]
+            ids = tokenizer.encode(chunk)
+            all_ids.extend(ids)
+
+        self.token_ids = all_ids
+        print(f"  总token数: {len(self.token_ids):,}")
+
+        # 计算样本数
+        self.num_samples = (len(self.token_ids) - 1) // context_length
+        print(f"  样本数: {self.num_samples:,}")
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        start = idx * self.context_length
+        end = start + self.context_length + 1
+
+        chunk = self.token_ids[start:end]
+
+        # 填充
+        if len(chunk) < self.context_length + 1:
+            chunk = chunk + [self.tokenizer.pad_token_id] * (self.context_length + 1 - len(chunk))
+
+        input_ids = torch.tensor(chunk[:-1], dtype=torch.long)
+        labels = torch.tensor(chunk[1:], dtype=torch.long)
+
+        # 忽略padding的损失
+        labels[labels == self.tokenizer.pad_token_id] = -100
+
+        return {"input_ids": input_ids, "labels": labels}
+
+
+def create_model(vocab_size, config, output_dir):
+    """创建GPT-2模型"""
+    print("\n[阶段4] 创建模型...")
+
+    model_path = os.path.join(output_dir, "model")
+
+    # 检查是否已存在训练好的模型
+    if os.path.exists(os.path.join(model_path, "pytorch_model.bin")):
+        print(f"  加载已训练模型: {model_path}")
+        model = GPT2LMHeadModel.from_pretrained(model_path)
+        model = model.to(config["device"])
+        print(f"  参数量: {sum(p.numel() for p in model.parameters()):,}")
+        return model
+
+    # 创建新模型
+    gpt_config = GPT2Config(
+        vocab_size=vocab_size,
+        n_positions=config["context_length"],
+        n_embd=config["emb_dim"],
+        n_layer=config["n_layers"],
+        n_head=config["n_heads"],
+    )
+
+    model = GPT2LMHeadModel(gpt_config)
+    model = model.to(config["device"])
+
+    # 统计参数
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    print(f"  总参数: {total_params:,}")
+    print(f"  可训练参数: {trainable_params:,}")
+
+    return model
+
+
+def train_model(
+    model, train_loader, val_loader, config, output_dir, start_epoch=0, best_val_loss=float("inf"), no_improve_epochs=0, optimizer=None
+):
+    """训练模型"""
+    print("\n[阶段5] 训练模型...")
+
+    if optimizer is None:
+        optimizer = AdamW(model.parameters(), lr=config["learning_rate"])
+
+    patience = 3
+    model_path = os.path.join(output_dir, "model")
+    os.makedirs(model_path, exist_ok=True)
+
+    for epoch in range(start_epoch, config["epochs"]):
+        current_epoch = epoch + 1
+        print(f"\nEpoch {current_epoch}/{config['epochs']}")
+        print("-" * 40)
+
+        # 训练
+        model.train()
+        train_loss = 0
+        train_steps = 0
+
+        for batch in tqdm(train_loader, desc="训练中"):
+            input_ids = batch["input_ids"].to(config["device"])
+            labels = batch["labels"].to(config["device"])
+
+            optimizer.zero_grad()
+
+            outputs = model(input_ids=input_ids, labels=labels)
+            loss = outputs.loss
+
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+
+            train_loss += loss.item()
+            train_steps += 1
+
+        avg_train_loss = train_loss / train_steps
+
+        # 验证
+        model.eval()
+        val_loss = 0
+        val_steps = 0
+
+        with torch.no_grad():
+            for batch in val_loader:
+                input_ids = batch["input_ids"].to(config["device"])
+                labels = batch["labels"].to(config["device"])
+
+                outputs = model(input_ids=input_ids, labels=labels)
+                val_loss += outputs.loss.item()
+                val_steps += 1
+
+        avg_val_loss = val_loss / val_steps
+
+        print(f"  训练损失: {avg_train_loss:.4f}")
+        print(f"  验证损失: {avg_val_loss:.4f}")
+
+        # 保存最佳模型 + 早停检查
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            model.save_pretrained(model_path)
+            print(f"  ✓ 保存最佳模型 (Val Loss: {avg_val_loss:.4f})")
+            no_improve_epochs = 0
+        else:
+            no_improve_epochs += 1
+            print(f"  验证损失未下降 ({no_improve_epochs}/{patience})")
+            if no_improve_epochs >= patience:
+                print(f"  验证损失连续{patience}轮未下降，提前终止训练")
+                break
+
+        # 保存checkpoint（支持断点续训）
+        checkpoint = {
+            "epoch": current_epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "best_val_loss": best_val_loss,
+            "no_improve_epochs": no_improve_epochs,
+        }
+        torch.save(checkpoint, os.path.join(model_path, "checkpoint.pt"))
+
+        # 显示显存使用
+        if torch.cuda.is_available():
+            allocated = torch.cuda.memory_allocated(0) / 1024**3
+            reserved = torch.cuda.memory_reserved(0) / 1024**3
+            print(f"  显存: {allocated:.2f}GB / {reserved:.2f}GB")
+
+    # 删除checkpoint文件（训练完成）
+    checkpoint_path = os.path.join(model_path, "checkpoint.pt")
+    if os.path.exists(checkpoint_path):
+        os.remove(checkpoint_path)
+        print("  checkpoint已清理")
+
+    print("\n" + "=" * 60)
+    print("训练完成!")
+    print("=" * 60)
+    print(f"最佳验证损失: {best_val_loss:.4f}")
+    print(f"模型已保存: {model_path}")
+
+    return model
+
+
+def main():
+    # 解析参数
+    args = parse_args()
+
+    # 配置
+    config = {
+        "data_path": args.data_path,
+        "output_dir": args.output_dir,
+        "vocab_size": args.vocab_size,
+        "context_length": args.context_length,
+        "emb_dim": args.emb_dim,
+        "n_heads": args.n_heads,
+        "n_layers": args.n_layers,
+        "batch_size": args.batch_size,
+        "learning_rate": args.learning_rate,
+        "epochs": args.epochs,
+        "val_split": args.val_split,
+        "device": "cuda" if torch.cuda.is_available() else "cpu",
+    }
+
+    # 打印配置
+    print("=" * 60)
+    print("中文小说 GPT 训练")
+    print("=" * 60)
+    print(f"设备: {config['device']}")
+    if torch.cuda.is_available():
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+    print("-" * 60)
+    print(f"数据文件: {config['data_path']}")
+    print(f"输出目录: {config['output_dir']}")
+    print(f"词表大小: {config['vocab_size']}")
+    print(f"上下文长度: {config['context_length']}")
+    print(f"嵌入维度: {config['emb_dim']}")
+    print(f"注意力头数: {config['n_heads']}")
+    print(f"Transformer层数: {config['n_layers']}")
+    print(f"批次大小: {config['batch_size']}")
+    print(f"学习率: {config['learning_rate']}")
+    print(f"训练轮数: {config['epochs']}")
+    print("=" * 60)
+
+    output_dir = config["output_dir"]
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 1. 加载数据
+    text, paragraphs = load_and_preprocess_data(config["data_path"])
+
+    # 2. 训练分词器
+    tokenizer = train_bpe_tokenizer(paragraphs, config["vocab_size"], output_dir)
+
+    # 3. 创建数据集
+    full_dataset = NovelDataset(text, tokenizer, config["context_length"])
+
+    # 划分训练/验证集
+    train_size = int((1 - config["val_split"]) * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+
+    train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
+
+    print(f"  训练集: {len(train_dataset):,}")
+    print(f"  验证集: {len(val_dataset):,}")
+
+    # 创建DataLoader
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=0, pin_memory=True)
+
+    # 4. 创建模型
+    model = create_model(tokenizer.vocab_size, config, output_dir)
+
+    # 检查checkpoint，支持断点续训
+    model_path = os.path.join(output_dir, "model")
+    checkpoint_path = os.path.join(model_path, "checkpoint.pt")
+    start_epoch = 0
+    best_val_loss = float("inf")
+    no_improve_epochs = 0
+    optimizer = None
+
+    if os.path.exists(checkpoint_path):
+        print("\n  发现checkpoint，正在加载...")
+        checkpoint = torch.load(checkpoint_path, map_location=config["device"])
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer = AdamW(model.parameters(), lr=config["learning_rate"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        start_epoch = checkpoint["epoch"]
+        best_val_loss = checkpoint["best_val_loss"]
+        no_improve_epochs = checkpoint["no_improve_epochs"]
+        print(f"  从第 {start_epoch + 1} 轮继续训练")
+        print(f"  最佳验证损失: {best_val_loss:.4f}")
+        os.remove(checkpoint_path)
+
+    # 5. 训练
+    model = train_model(model, train_loader, val_loader, config, output_dir, start_epoch, best_val_loss, no_improve_epochs, optimizer)
+
+    # 保存tokenizer配置
+    tokenizer.save_pretrained(os.path.join(output_dir, "model"))
+
+    print("\n下一步: 运行 python generate.py 生成文本")
+
+
+if __name__ == "__main__":
+    main()
