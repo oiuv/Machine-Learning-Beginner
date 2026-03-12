@@ -4,13 +4,13 @@
 
 使用方法：
     # 单文件训练
-    python train.py -d ../../data/诡秘之主.txt
+    python train.py -d data/小说.txt
 
-    # 多文件训练（传入目录）
-    python train.py -d ../../data/
+    # 多文件训练（传入目录，自动合并所有txt）
+    python train.py -d data/
 
     # 自定义参数
-    python train.py -d ../../data/ -e 10 -b 4 -lr 3e-4
+    python train.py -d data/ -e 10 -b 4 -lr 3e-4
 """
 
 import os

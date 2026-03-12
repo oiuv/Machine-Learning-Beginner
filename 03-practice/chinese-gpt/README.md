@@ -18,22 +18,28 @@
 
 ### 1. 准备数据
 
-准备中文小说文本文件（UTF-8 编码）：
+准备中文小说文本文件（UTF-8 编码），放在 `data/` 目录下：
 ```
-../../data/小说.txt
+data/
+├── 小说1.txt
+├── 小说2.txt
+└── ...
 ```
 
 ### 2. 训练模型
 
 ```bash
-# 基础训练
-python train.py -d ../../data/小说.txt
+# 单文件训练
+python train.py -d data/小说.txt
+
+# 多文件训练（传入目录，自动合并所有txt）
+python train.py -d data/
 
 # 自定义参数
-python train.py -d ../../data/小说.txt -e 5 -b 4
+python train.py -d data/小说.txt -e 5 -b 4
 
 # 小模型快速实验
-python train.py -d ../../data/小说.txt -c 256 -E 512 -L 6 -b 4
+python train.py -d data/小说.txt -c 256 -E 512 -L 6 -b 4
 ```
 
 ### 3. 生成文本
@@ -192,16 +198,20 @@ output/
 ## 🎉 完整示例
 
 ```bash
-# 1. 训练模型
-python train.py -d ../../data/小说.txt -e 10 -b 4
+# 1. 准备数据目录和文件
+mkdir -p data
+# 将你的小说txt文件放入 data/ 目录
 
-# 2. 查看训练日志
+# 2. 训练模型
+python train.py -d data/小说.txt -e 10 -b 4
+
+# 3. 查看训练日志
 cat output/training.log
 
-# 3. 生成文本
+# 4. 生成文本
 python generate.py --model output/model --prompt "第一章" --length 500
 
-# 4. 尝试不同风格
+# 5. 尝试不同风格
 python generate.py --model output/model --prompt "话说" --temperature 1.0
 python generate.py --model output/model --prompt "江湖" --temperature 0.7
 ```
