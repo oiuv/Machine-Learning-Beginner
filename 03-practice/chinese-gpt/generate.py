@@ -15,8 +15,7 @@ import argparse
 import os
 import sys
 import torch
-from transformers import GPT2LMHeadModel
-from tokenizers import Tokenizer
+from transformers import GPT2LMHeadModel, PreTrainedTokenizerFast
 
 
 class GPTGenerator:
@@ -49,8 +48,8 @@ class GPTGenerator:
         if tokenizer_file is None:
             raise FileNotFoundError(f"找不到 tokenizer.json，尝试路径: {possible_paths}")
 
-        # 加载分词器
-        self.tokenizer = Tokenizer.from_file(tokenizer_file)
+        # 加载分词器（使用与训练一致的 PreTrainedTokenizerFast）
+        self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file)
 
         # 加载模型
         self.model = GPT2LMHeadModel.from_pretrained(model_dir)
@@ -58,12 +57,12 @@ class GPTGenerator:
         self.model.eval()
 
         print(f"设备: {self.device}")
-        print(f"词表大小: {self.tokenizer.get_vocab_size()}")
+        print(f"词表大小: {self.tokenizer.vocab_size}")
         print("模型加载完成!\n")
 
     def encode(self, text):
         """编码文本"""
-        return self.tokenizer.encode(text).ids
+        return self.tokenizer.encode(text)
 
     def decode(self, ids, skip_special_tokens=True):
         """解码token，并进行中文后处理"""

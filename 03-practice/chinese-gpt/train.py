@@ -1,17 +1,4 @@
-"""
-中文小说 GPT 训练脚本
-完整流程：数据预处理 -> 训练BPE分词器 -> 训练GPT模型
-
-使用方法：
-    # 单文件训练
-    python train.py -d data/小说.txt
-
-    # 多文件训练（传入目录，自动合并所有txt）
-    python train.py -d data/
-
-    # 自定义参数
-    python train.py -d data/ -e 10 -b 4 -lr 3e-4
-"""
+"""中文小说 GPT 训练脚本"""
 
 import os
 import re
@@ -31,7 +18,77 @@ import time
 
 def parse_args():
     """解析命令行参数"""
-    parser = argparse.ArgumentParser(description="中文小说 GPT 训练")
+    description = """中文小说 GPT 训练脚本
+
+================================================================================
+📊 配置说明与硬件要求
+================================================================================
+
+【默认配置】针对 16GB 显存（如 RTX 4090）优化：
+    -C 512 -b 8  →  显存占用约 10-12GB，训练速度最快
+
+【平衡配置】上下文和速度的平衡：
+    -C 768 -b 6  →  显存占用约 12GB，比512长50%上下文，batch适中
+
+【推荐配置】追求更好的长文本生成效果：
+    -C 1024 -b 4  →  显存占用约 10-12GB，上下文翻倍，适合小说生成
+
+【小模型快速实验】显存不足或快速验证：
+    -C 256 -L 6  →  显存占用约 4-6GB，只改上下文和层数，其他默认
+
+================================================================================
+📈 模型规模对比（与 GPT-2 系列）
+================================================================================
+
+配置参数                | 你的模型(默认) | GPT-2 Small | GPT-2 Medium
+-----------------------|---------------|-------------|--------------
+词表大小 (vocab_size)  | 50,000        | 50,257      | 50,257
+上下文长度 (context)   | 512 (可1024)  | 1024        | 1024
+嵌入维度 (emb_dim)     | 768           | 768         | 1024
+Transformer层数        | 12            | 12          | 24
+注意力头数             | 12            | 12          | 16
+参数量                 | ~124M         | ~117M       | ~345M
+显存需求 (参考)        | ~10-12GB      | ~10-12GB    | ~30GB+
+
+默认配置 ≈ GPT-2 Small 级别，但针对中文优化（BPE分词器）
+
+================================================================================
+🚀 使用示例
+================================================================================
+
+# 1. 基础训练（默认配置，适合 16GB 显存）
+    python train.py -d data/
+
+# 2. 长文本优化（推荐，上下文翻倍）
+    python train.py -d data/ -C 1024 -b 4
+
+# 3. 小模型快速实验（低显存）
+    python train.py -d data/ -C 256 -L 6
+
+# 4. 单文件训练
+    python train.py -d data/小说.txt
+
+# 5. 多文件训练（自动合并目录下所有txt）
+    python train.py -d data/
+
+# 6. 自定义训练轮数和学习率
+    python train.py -d data/ -e 15 -lr 3e-4
+
+================================================================================
+💡 参数调优建议
+================================================================================
+
+• 上下文长度 (-C): 512(快) / 768(平衡，推荐搭配b6) / 1024(效果好但慢)
+• 嵌入维度 (-E) 和头数 (-H): 必须整除，如 -E 768 -H 12 或 -E 512 -H 8
+• 层数 (-L): 默认12，减小到6可以大幅降低显存
+• 批次大小 (-b): 显存够大用 8，不够减到 4 或 2
+• 学习率 (-lr): 默认 5e-4，如果发散降到 1e-4，如果收敛慢升到 1e-3
+• 训练轮数 (-e): 一般 10-20 轮，观察验证损失早停
+
+================================================================================
+"""
+    parser = argparse.ArgumentParser(description=description,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # 必需参数
     parser.add_argument("-d", "--data_path", type=str, required=True, help="训练数据：文件路径或目录（自动扫描所有txt）")
@@ -132,6 +189,9 @@ def train_bpe_tokenizer(paragraphs, vocab_size, output_dir):
     # 转换为transformers格式
     hf_tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_path, bos_token="<s>", eos_token="</s>", pad_token="<|pad|>")
 
+    # 显式设置 pad_token_id，避免后续使用时报错
+    hf_tokenizer.pad_token_id = hf_tokenizer.token_to_id("<|pad|>")
+
     return hf_tokenizer
 
 
@@ -220,7 +280,7 @@ def create_model(vocab_size, config, output_dir):
 
 
 def train_model(
-    model, train_loader, val_loader, config, output_dir, start_epoch=0, best_val_loss=float("inf"), no_improve_epochs=0, optimizer=None
+    model, train_loader, val_loader, tokenizer, config, output_dir, start_epoch=0, best_val_loss=float("inf"), no_improve_epochs=0, optimizer=None
 ):
     """训练模型"""
     print("\n[阶段5] 训练模型...")
@@ -439,7 +499,7 @@ def main():
         os.remove(checkpoint_path)
 
     # 5. 训练
-    model = train_model(model, train_loader, val_loader, config, output_dir, start_epoch, best_val_loss, no_improve_epochs, optimizer)
+    model = train_model(model, train_loader, val_loader, tokenizer, config, output_dir, start_epoch, best_val_loss, no_improve_epochs, optimizer)
 
     # 保存tokenizer配置
     tokenizer.save_pretrained(os.path.join(output_dir, "model"))
@@ -456,4 +516,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n训练已手动中断。")
+        print("如需恢复训练，请使用相同的命令重新运行（支持断点续训）。")
+        import sys
+        sys.exit(0)
