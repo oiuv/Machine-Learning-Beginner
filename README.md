@@ -50,7 +50,13 @@
 | 章节 | 内容 | 文件 |
 |------|------|------|
 | [fundamentals](02-llm-from-scratch/fundamentals/) | **LLM 基础教程** - 从文本处理到 RLHF 的完整学习路径（9章） | 多章节 |
-| [llama3](02-llm-from-scratch/llama3/) | **Llama3 实现** - 从零手写 Llama3-8B 大语言模型 | `tutorial.ipynb` |
+| [llama3-step-by-step](02-llm-from-scratch/llama3-step-by-step/) | **Llama3 分解式教学** - 10个渐进式课程，从零实现每个组件 | 10个lesson |
+| [llama3](02-llm-from-scratch/llama3/) | **Llama3 完整实现** - 单个notebook完整实现Llama3-8B | `tutorial.ipynb` |
+
+**学习路径建议：**
+1. **零基础系统学习** → `fundamentals/`（9章通用教程）
+2. **深入Llama3每个组件** → `llama3-step-by-step/`（10课分解教学）
+3. **快速概览整体架构** → `llama3/`（完整notebook）
 
 **你将学到：**
 - 大语言模型的内部架构
@@ -120,8 +126,10 @@ python 03-practice/chinese-gpt/train.py -d ../../data/小说.txt
 ## 📖 推荐学习顺序
 
 1. **完全零基础**：从 `01-basics/01-linear-model/` 开始，按顺序学习
-2. **有基础想深入 LLM**：直接跳到 `02-llm-from-scratch/llama3/`
-3. **想快速上手项目**：从 `03-practice/chinese-gpt/` 开始
+2. **有基础想系统学习 LLM**：`02-llm-from-scratch/fundamentals/`（9章完整教程）
+3. **想深入 Llama3 每个组件**：`02-llm-from-scratch/llama3-step-by-step/`（10课分解教学）⭐
+4. **有基础想快速概览 LLM**：直接跳到 `02-llm-from-scratch/llama3/`
+5. **想快速上手项目**：从 `03-practice/chinese-gpt/` 开始
 
 ---
 
