@@ -4,7 +4,19 @@
 
 ## 📚 章节导航
 
-### [chinese-gpt](chinese-gpt/) - 中文小说 GPT
+### [chinese-gpt-fundamentals.md](chinese-gpt-fundamentals.md) - 基础教程版本 ⭐
+**来自 `02-llm-from-scratch/fundamentals/projects/guimi-gpt/`**
+
+这是《从零训练大模型》教程的实践项目版本，包含完整的学习笔记和训练记录。
+
+**特点：**
+- 完整的学习路径（Ch01-Ch09）
+- 详细的训练笔记和关键洞察
+- 适合系统学习 LLM 训练流程
+
+---
+
+### [chinese-gpt](chinese-gpt/) - 中文小说 GPT（工程版）
 **核心内容：**
 - 训练自定义 BPE 分词器
 - 构建中文 GPT 模型

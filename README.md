@@ -43,13 +43,14 @@
 ---
 
 ### 🚀 02-llm-from-scratch - 进阶篇：从零实现大模型
-不依赖 PyTorch/TensorFlow 的高级封装，逐行手写实现 Llama3。
+不依赖 PyTorch/TensorFlow 的高级封装，逐行手写实现大语言模型。
 
 > 📌 **致谢**：本章节 Llama3 教程基于 [naklecha/llama3-from-scratch](https://github.com/naklecha/llama3-from-scratch) 改编，感谢原作者的精彩实现！
 
 | 章节 | 内容 | 文件 |
 |------|------|------|
-| [llama3](02-llm-from-scratch/llama3/) | 从零手写 Llama3-8B 大语言模型 | `tutorial.ipynb` |
+| [fundamentals](02-llm-from-scratch/fundamentals/) | **LLM 基础教程** - 从文本处理到 RLHF 的完整学习路径（9章） | 多章节 |
+| [llama3](02-llm-from-scratch/llama3/) | **Llama3 实现** - 从零手写 Llama3-8B 大语言模型 | `tutorial.ipynb` |
 
 **你将学到：**
 - 大语言模型的内部架构
@@ -148,10 +149,12 @@ Machine-Learning-Beginner/
 │   └── 04-neural-network/
 │
 ├── 02-llm-from-scratch/         # 🚀 进阶篇
-│   └── llama3/
+│   ├── fundamentals/            # LLM 基础教程（9章）
+│   └── llama3/                  # Llama3 实现
 │
 ├── 03-practice/                 # 🛠️ 实践篇
-│   └── chinese-gpt/
+│   ├── chinese-gpt/             # 中文小说 GPT
+│   └── chinese-gpt-fundamentals.md  # 基础教程项目链接
 │
 ├── 04-future/                   # 🔮 未来扩展
 │

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+*.egg
+*.pyc
+
+# 模型输出（训练产物）
+*/output/
+*.pt
+*.pth
+*.safetensors
+
+# 数据（训练用的文本文件，不加入仓库）
+data/*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

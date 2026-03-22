@@ -1,0 +1,252 @@
+[
+  {
+    "instruction": "请把下面的句子翻译成中文",
+    "input": "Hello world",
+    "output": "你好世界"
+  },
+  {
+    "instruction": "请把下面的句子翻译成中文",
+    "input": "Good morning",
+    "output": "早上好"
+  },
+  {
+    "instruction": "请把下面的句子翻译成中文",
+    "input": "Thank you very much",
+    "output": "非常感谢"
+  },
+  {
+    "instruction": "请把下面的句子翻译成中文",
+    "input": "How are you?",
+    "output": "你好吗？"
+  },
+  {
+    "instruction": "请把下面的句子翻译成中文",
+    "input": "I love programming",
+    "output": "我热爱编程"
+  },
+  {
+    "instruction": "请把下面的句子翻译成英文",
+    "input": "今天天气很好",
+    "output": "The weather is nice today"
+  },
+  {
+    "instruction": "请把下面的句子翻译成英文",
+    "input": "我喜欢学习新知识",
+    "output": "I like learning new things"
+  },
+  {
+    "instruction": "请把下面的句子翻译成英文",
+    "input": "这本书很有趣",
+    "output": "This book is very interesting"
+  },
+  {
+    "instruction": "请把下面的句子翻译成英文",
+    "input": "他在做什么？",
+    "output": "What is he doing?"
+  },
+  {
+    "instruction": "请把下面的句子翻译成英文",
+    "input": "我们会成功的",
+    "output": "We will succeed"
+  },
+  {
+    "instruction": "请总结下面的文本",
+    "input": "今天天气很好，阳光明媚，温度适宜，非常适合外出散步和运动。",
+    "output": "天气晴朗，适合外出。"
+  },
+  {
+    "instruction": "请总结下面的文本",
+    "input": "这本书讲述了一个年轻人追求梦想的故事，他经历了许多困难和挫折，但最终实现了自己的目标。",
+    "output": "年轻人克服困难实现梦想。"
+  },
+  {
+    "instruction": "请总结下面的文本",
+    "input": "人工智能正在快速发展，已经应用到了医疗、教育、交通等多个领域，对人们的生活产生了深远的影响。",
+    "output": "AI快速发展并影响多领域。"
+  },
+  {
+    "instruction": "请总结下面的文本",
+    "input": "这家餐厅的菜品非常丰富，有中式、西式、日式等多种选择，味道也很好，价格合理。",
+    "output": "餐厅菜品丰富、味道好、价格合理。"
+  },
+  {
+    "instruction": "请总结下面的文本",
+    "input": "这部电影讲述了一段跨越时空的爱情故事，男女主角在不同的时代相遇，经历了重重考验，最终走到了一起。",
+    "output": "跨时空爱情故事。"
+  },
+  {
+    "instruction": "请回答问题",
+    "input": "中国的首都是哪里？",
+    "output": "中国的首都是北京。"
+  },
+  {
+    "instruction": "请回答问题",
+    "input": "地球上最大的海洋是什么？",
+    "output": "太平洋。"
+  },
+  {
+    "instruction": "请回答问题",
+    "input": "一年有多少个月？",
+    "output": "一年有12个月。"
+  },
+  {
+    "instruction": "请回答问题",
+    "input": "水的化学式是什么？",
+    "output": "H2O"
+  },
+  {
+    "instruction": "请回答问题",
+    "input": "人类的正常体温是多少？",
+    "output": "37摄氏度左右。"
+  },
+  {
+    "instruction": "请改写成更礼貌的表达",
+    "input": "给我一本书",
+    "output": "请给我一本书，谢谢。"
+  },
+  {
+    "instruction": "请改写成更礼貌的表达",
+    "input": "滚开",
+    "output": "请让一下，谢谢。"
+  },
+  {
+    "instruction": "请改写成更礼貌的表达",
+    "input": "快点！",
+    "output": "麻烦您快一点，谢谢。"
+  },
+  {
+    "instruction": "请改写成更礼貌的表达",
+    "input": "我不知道",
+    "output": "抱歉，我不太清楚。"
+  },
+  {
+    "instruction": "请改写成更礼貌的表达",
+    "input": "不行",
+    "output": "抱歉，这可能不太方便。"
+  },
+  {
+    "instruction": "请判断下面的情感倾向",
+    "input": "这部电影太棒了！",
+    "output": "正面"
+  },
+  {
+    "instruction": "请判断下面的情感倾向",
+    "input": "服务态度很差，非常不满意。",
+    "output": "负面"
+  },
+  {
+    "instruction": "请判断下面的情感倾向",
+    "input": "今天天气还可以。",
+    "output": "中性"
+  },
+  {
+    "instruction": "请判断下面的情感倾向",
+    "input": "这本书的内容很有深度，值得一读。",
+    "output": "正面"
+  },
+  {
+    "instruction": "请判断下面的情感倾向",
+    "input": "质量太差了，浪费钱。",
+    "output": "负面"
+  },
+  {
+    "instruction": "请生成一个简单的句子",
+    "input": "主题：春天",
+    "output": "春天来了，花儿开了，鸟儿在唱歌。"
+  },
+  {
+    "instruction": "请生成一个简单的句子",
+    "input": "主题：学习",
+    "output": "学习让我们不断进步，获得新知识。"
+  },
+  {
+    "instruction": "请生成一个简单的句子",
+    "input": "主题：友谊",
+    "output": "真正的友谊是相互支持和理解。"
+  },
+  {
+    "instruction": "请生成一个简单的句子",
+    "input": "主题：科技",
+    "output": "科技改变了我们的生活方式。"
+  },
+  {
+    "instruction": "请生成一个简单的句子",
+    "input": "主题：健康",
+    "output": "保持健康需要良好的饮食和运动习惯。"
+  },
+  {
+    "instruction": "请解释下面的概念",
+    "input": "人工智能",
+    "output": "人工智能是让计算机模拟人类智能的技术，能够学习、推理和解决问题。"
+  },
+  {
+    "instruction": "请解释下面的概念",
+    "input": "机器学习",
+    "output": "机器学习是让计算机从数据中学习规律，而不是明确编程的方法。"
+  },
+  {
+    "instruction": "请解释下面的概念",
+    "input": "深度学习",
+    "output": "深度学习是使用多层神经网络进行学习的机器学习方法。"
+  },
+  {
+    "instruction": "请解释下面的概念",
+    "input": "云计算",
+    "output": "云计算是通过互联网提供计算资源和服务的模式。"
+  },
+  {
+    "instruction": "请解释下面的概念",
+    "input": "区块链",
+    "output": "区块链是一种分布式数据库技术，具有去中心化、不可篡改的特点。"
+  },
+  {
+    "instruction": "请把下面的句子改成疑问句",
+    "input": "他喜欢吃苹果",
+    "output": "他喜欢吃苹果吗？"
+  },
+  {
+    "instruction": "请把下面的句子改成疑问句",
+    "input": "今天是星期一",
+    "output": "今天是星期一吗？"
+  },
+  {
+    "instruction": "请把下面的句子改成疑问句",
+    "input": "她会来参加会议",
+    "output": "她会来参加会议吗？"
+  },
+  {
+    "instruction": "请把下面的句子改成疑问句",
+    "input": "这个方案可行",
+    "output": "这个方案可行吗？"
+  },
+  {
+    "instruction": "请把下面的句子改成疑问句",
+    "input": "他们已经完成了任务",
+    "output": "他们已经完成任务了吗？"
+  },
+  {
+    "instruction": "请提取关键信息",
+    "input": "张三，男，28岁，软件工程师，住在北京。",
+    "output": "姓名：张三，性别：男，年龄：28岁，职业：软件工程师，住址：北京"
+  },
+  {
+    "instruction": "请提取关键信息",
+    "input": "会议时间：明天下午3点，地点：会议室A，主题：项目进展汇报。",
+    "output": "时间：明天下午3点，地点：会议室A，主题：项目进展汇报"
+  },
+  {
+    "instruction": "请提取关键信息",
+    "input": "产品名称：智能手表，价格：999元，功能：心率监测、运动记录。",
+    "output": "产品：智能手表，价格：999元，功能：心率监测、运动记录"
+  },
+  {
+    "instruction": "请提取关键信息",
+    "input": "航班号：CA1234，起飞时间：14:00，目的地：上海。",
+    "output": "航班：CA1234，起飞：14:00，目的地：上海"
+  },
+  {
+    "instruction": "请提取关键信息",
+    "input": "作者：鲁迅，书名：《阿Q正传》，出版年份：1921年。",
+    "output": "作者：鲁迅，书名：《阿Q正传》，年份：1921年"
+  }
+]
