@@ -149,8 +149,9 @@ Machine-Learning-Beginner/
 │   └── 04-neural-network/
 │
 ├── 02-llm-from-scratch/         # 🚀 进阶篇
-│   ├── fundamentals/            # LLM 基础教程（9章）
-│   └── llama3/                  # Llama3 实现
+│   ├── fundamentals/            # 通用 LLM 基础教程（9章）
+│   ├── llama3-step-by-step/     # Llama3 分解式教学（10课）⭐
+│   └── llama3/                  # Llama3 完整实现（notebook）
 │
 ├── 03-practice/                 # 🛠️ 实践篇
 │   ├── chinese-gpt/             # 中文小说 GPT

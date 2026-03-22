@@ -29,11 +29,36 @@
 
 ---
 
-### [llama3](llama3/) - 从零手写 Llama3-8B
+### [llama3-step-by-step](llama3-step-by-step/) - Llama3 分解式教学 ⭐
 **核心内容：**
+- 10 个渐进式课程，从零实现 Llama3
+- 每个组件独立讲解，配有详细图解
+- 适合零基础逐步深入理解
+
+**课程安排：**
+1. **Lesson 1** - Tokenizer（文本分词）
+2. **Lesson 2** - Embeddings（词嵌入）
+3. **Lesson 3** - Attention Basics（注意力基础）
+4. **Lesson 4** - RoPE（旋转位置编码）
+5. **Lesson 5** - Multi-Head Attention（多头注意力）
+6. **Lesson 6** - SwiGLU（激活函数与前馈网络）
+7. **Lesson 7** - Norm & Residual（归一化与残差连接）
+8. **Lesson 8** - Transformer Layer（完整 Transformer 层）
+9. **Lesson 9** - Multi-Layer Output（多层输出）
+10. **Lesson 10** - Summary（整合与总结）
+
+**特点：**
+- 每个 lesson 可独立运行
+- 大量可视化图解
+- 详细中文注释和比喻教学
+
+---
+
+### [llama3](llama3/) - 从零手写 Llama3-8B（完整版）
+**核心内容：**
+- 单个 notebook 完整实现 Llama3
 - 加载 Meta 官方 Llama3 权重
 - 实现完整的推理流程
-- 逐行理解每个组件
 
 **你将实现：**
 1. **Tokenizer** - BPE 分词器
@@ -44,6 +69,10 @@
 6. **SwiGLU** - SwiGLU 前馈网络
 7. **Transformer Block** - 完整的 Transformer 层
 8. **文本生成** - 自回归生成
+
+**与 step-by-step 的区别：**
+- `llama3/`：完整实现，适合快速概览整体架构
+- `llama3-step-by-step/`：分解教学，适合逐步深入每个组件
 
 ## 🎯 学习目标
 
