@@ -170,9 +170,10 @@ class LoadBalancingLoss(nn.Module):
         # 理想频率
         ideal_freq = 1.0 / self.num_experts
         
-        # 辅助损失：鼓励均匀分布
-        # L = num_experts * sum(p_i * 1/num_experts) = sum(p_i) = 1 (理想)
-        aux_loss = self.num_experts * (expert_freq * ideal_freq).sum()
+        # 辅助损失：鼓励均匀分布（使用均方误差）
+        # 注意：错误的公式是 num_experts * sum(p_i * 1/num_experts) = 1 总是返回1
+        # 正确的公式：num_experts * sum((p_i - 1/num_experts)^2)
+        aux_loss = self.num_experts * ((expert_freq - ideal_freq) ** 2).sum()
         
         return self.alpha * aux_loss
 ```
@@ -218,7 +219,16 @@ class MultiHeadAttention(nn.Module):
 
 
 class MoETransformerBlock(nn.Module):
-    """MoE版本的Transformer Block"""
+    """MoE版本的Transformer Block
+    
+    标准Mixtral架构（Pre-LN结构）：
+    1. norm1 - Self-Attention前的Pre-LN
+    2. norm2 - MoE Layer前的Pre-LN
+    3. 共享expert和routed experts的输出相加后通过残差连接
+    
+    注意：原始实现错误地添加了norm3用于共享FFN，这是多余的。
+    共享FFN应该和routed experts一样接收norm2的输出。
+    """
     
     def __init__(self, hidden_dim: int, ffn_dim: int, 
                  num_heads: int, num_experts: int, top_k: int):
@@ -230,18 +240,21 @@ class MoETransformerBlock(nn.Module):
         self.norm2 = nn.LayerNorm(hidden_dim)
         self.moe = MoELayer(hidden_dim, ffn_dim, num_experts, top_k)
         
-        self.norm3 = nn.LayerNorm(hidden_dim)
-        self.mlp = Expert(hidden_dim, ffn_dim)  # 共享FFN
+        # 共享expert（始终参与）
+        self.shared_expert = Expert(hidden_dim, ffn_dim)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Self-Attention + 残差
         x = x + self.attn(self.norm1(x))
         
-        # MoE Layer + 残差
-        x = x + self.moe(self.norm2(x))
+        # MoE Layer（包含routed experts + 共享expert）
+        # norm2的输出同时送给routed experts和共享expert
+        moe_input = self.norm2(x)
+        routed_output = self.moe(moe_input)
+        shared_output = self.shared_expert(moe_input)
         
-        # 共享FFN + 残差
-        x = x + self.mlp(self.norm3(x))
+        # 残差连接
+        x = x + routed_output + shared_output
         
         return x
 ```

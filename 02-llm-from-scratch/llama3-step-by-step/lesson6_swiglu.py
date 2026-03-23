@@ -301,7 +301,7 @@ class SwiGLU(nn.Module):
         self.dim = dim
         
         # Llama3 的 hidden_dim 计算
-        # hidden_dim = 2/3 * 4 * dim (约 2.67x)
+        # hidden_dim = int(2/3 * 4 * dim) = int(8/3 * dim)
         # 然后向上取整到 multiple_of 的倍数
         if hidden_dim is None:
             hidden_dim = 4 * dim

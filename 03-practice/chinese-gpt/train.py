@@ -170,7 +170,9 @@ def train_bpe_tokenizer(paragraphs, vocab_size, output_dir):
 
     # 创建BPE分词器 - 使用字节级适配中文
     tokenizer = Tokenizer(BPE(unk_token="<|unk|>"))
-    tokenizer.pre_tokenizer = CharDelimiterSplit(" ")
+    # 注意：中文文本没有空格分隔，必须使用 Whitespace() 进行预处理
+    # CharDelimiterSplit(" ") 对中文无效，会导致整个段落被当作一个token
+    tokenizer.pre_tokenizer = Whitespace()
 
     # 配置训练器
     trainer = BpeTrainer(vocab_size=vocab_size, special_tokens=["<|pad|>", "<|unk|>", "<s>", "</s>"], min_frequency=2)
@@ -258,9 +260,10 @@ def create_model(vocab_size, config, output_dir):
         return model
 
     # 创建新模型
+    # 注意：GPT2Config 使用 n_ctx 表示上下文长度，而非 n_positions
     gpt_config = GPT2Config(
         vocab_size=vocab_size,
-        n_positions=config["context_length"],
+        n_ctx=config["context_length"],
         n_embd=config["emb_dim"],
         n_layer=config["n_layers"],
         n_head=config["n_heads"],

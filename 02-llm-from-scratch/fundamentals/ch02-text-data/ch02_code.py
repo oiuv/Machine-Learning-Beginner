@@ -135,7 +135,7 @@ def demo_bpe():
     
     text = "Hello, do you like tea?  In the sunlit terraces of someunknownPlace."
     
-    integers = tokenizer.encode(text, allowed_special={"", "<|unk|>"})
+    integers = tokenizer.encode(text, allowed_special="all")
     strings = tokenizer.decode(integers)
     
     print(f"原文: {text}")
@@ -144,7 +144,7 @@ def demo_bpe():
     print(f"解码: {strings}")
     
     unknown_word = "Akwirwierer"
-    encoded_unknown = tokenizer.encode(unknown_word, allowed_special={"", "<|unk|>"})
+    encoded_unknown = tokenizer.encode(unknown_word, allowed_special="all")
     decoded_unknown = tokenizer.decode(encoded_unknown)
     
     print(f"\n未知词 '{unknown_word}' 的编码: {encoded_unknown}")
@@ -164,7 +164,7 @@ class GPTDatasetV1(Dataset):
         self.input_ids = []
         self.target_ids = []
         
-        token_ids = tokenizer.encode(txt, allowed_special={"", "<|unk|>"})
+        token_ids = tokenizer.encode(txt, allowed_special="all")
         
         assert len(token_ids) > max_length, "文本太短"
         
@@ -275,7 +275,7 @@ def demo_positional_embedding():
         raw_text = f.read()
     
     tokenizer = tiktoken.get_encoding("gpt2")
-    token_ids = tokenizer.encode(raw_text, allowed_special={"", "<|unk|>"})
+    token_ids = tokenizer.encode(raw_text, allowed_special="all")
     
     torch.manual_seed(123)
     
@@ -318,7 +318,7 @@ def demo_complete_pipeline():
     print(f"原始文本: {text}")
     
     tokenizer = tiktoken.get_encoding("gpt2")
-    token_ids = tokenizer.encode(text, allowed_special={"", "<|unk|>"})
+    token_ids = tokenizer.encode(text, allowed_special="all")
     print(f"\n1. Tokenization -> Token IDs: {token_ids}")
     
     vocab_size = 50257

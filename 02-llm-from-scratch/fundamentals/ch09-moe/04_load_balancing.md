@@ -59,7 +59,9 @@ def load_balancing_loss(gate_probs, top_k_indices, num_experts):
     ideal_prob = 1.0 / num_experts
     
     # 计算差异（用均方误差）
-    loss = num_experts * (avg_prob * ideal_prob).sum()
+    # 正确的辅助损失：使用均方误差让分布接近均匀
+    # L = num_experts * sum((p_i - 1/num_experts)^2)
+    loss = num_experts * ((avg_prob - ideal_prob) ** 2).sum()
     
     return loss
 ```
@@ -82,7 +84,10 @@ def aux_load_balancing_loss(gate_probs, top_k_indices, num_experts, top_k):
     # L = sum(probs_mean * ideal_prob) * num_experts
     # = num_experts * sum(p_i / num_experts)
     # = sum(p_i) = 1  (理想情况)
-    aux_loss = num_experts * (probs_mean * ideal_prob).sum()
+    # 注意：上面的公式是错误的！它总是返回1.0，无论分布如何
+    # 正确的辅助损失使用均方误差：
+    # L = num_experts * sum((p_i - 1/num_experts)^2)
+    aux_loss = num_experts * ((probs_mean - ideal_prob) ** 2).sum()
     
     return aux_loss
 ```
@@ -101,8 +106,8 @@ def aux_load_balancing_loss_v2(fire_probs, top_k_indices, num_experts):
     # 理想情况：每个专家被选中的概率相等
     ideal = 1.0 / num_experts
     
-    # 辅助损失 = num_experts * 概率分布与均匀分布的差异
-    aux_loss = num_experts * (fire_probs * ideal).sum()
+    # 辅助损失 = num_experts * 概率分布与均匀分布的差异（均方误差形式）
+    aux_loss = num_experts * ((fire_probs - ideal) ** 2).sum()
     
     return aux_loss
 ```

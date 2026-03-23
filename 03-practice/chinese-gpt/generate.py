@@ -102,22 +102,37 @@ class GPTGenerator:
                 logits = logits / temperature
 
                 # 应用重复惩罚
+                # 正确实现：需要根据logits的符号区分处理
+                # 正向logits：除以penalty（降低概率）
+                # 负向logits：乘以penalty（提升概率，避免过度惩罚）
                 if repetition_penalty != 1.0:
                     for token_id in set(generated_ids):
-                        logits[0, token_id] /= repetition_penalty
+                        if logits[0, token_id] > 0:
+                            logits[0, token_id] /= repetition_penalty
+                        else:
+                            logits[0, token_id] *= repetition_penalty
 
                 # Top-p 采样（nucleus sampling）
+                # 标准的 nucleus sampling 实现
                 probs = torch.softmax(logits, dim=-1)
                 sorted_probs, sorted_indices = torch.sort(probs, descending=True)
                 cumsum_probs = torch.cumsum(sorted_probs, dim=-1)
 
-                # 移除超过 top_p 的token
+                # 创建掩码：保留第一个超过 top_p 的token及其之前的所有token
+                # 移除第一个超过阈值的token之后的所有token
                 sorted_indices_to_remove = cumsum_probs > top_p
-                sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
-                sorted_indices_to_remove[..., 0] = False
+                # 左移掩码，确保第一个超过阈值的token也被移除（只保留不超过阈值的）
+                sorted_indices_to_remove = torch.cat([
+                    sorted_indices_to_remove[..., :1] * False,
+                    sorted_indices_to_remove[..., :-1]
+                ], dim=-1)
 
                 indices_to_remove = sorted_indices[sorted_indices_to_remove]
                 logits[0, indices_to_remove] = float('-inf')
+
+                # 重新计算概率并采样
+                probs = torch.softmax(logits, dim=-1)
+                next_token = torch.multinomial(probs, num_samples=1).item()
 
                 # 重新计算概率并采样
                 probs = torch.softmax(logits, dim=-1)
