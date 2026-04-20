@@ -332,6 +332,52 @@ Transformer 块:             12 × 7M = 85,026,816 (约 85M)
 不重复计算的参数总数: 约 124M
 ```
 
+### n_ctx 与 Position Embedding 的关系
+
+**`n_ctx`（上下文长度）决定了 Position Embedding 表的大小：**
+
+| 参数 | 含义 | 决定什么 |
+|------|------|---------|
+| `n_ctx` | 上下文长度 | Position Embedding 表的行数 |
+| `emb_dim` | 嵌入维度 | Position Embedding 表的列数 |
+| `n_ctx × emb_dim` | - | Position Embedding 表的总参数量 |
+
+```
+n_ctx = 1024
+Position Embedding 表:
+┌────────────────────────────────┐
+│ pos=0    → [768维向量]        │
+│ pos=1    → [768维向量]        │
+│ pos=2    → [768维向量]        │
+│ ...                             │
+│ pos=1023 → [768维向量]        │ ← 最多只能表示 1024 个位置
+└────────────────────────────────┘
+                 │
+                 └── 表大小: 1024 × 768 = 786,432
+```
+
+**为什么不能超过 n_ctx？**
+- 如果输入序列长度 > n_ctx，Position Embedding 表没有对应的位置向量
+- 模型无法表示超出训练长度位置的信息
+
+### n_ctx 与 Attention 计算的关系
+
+**`n_ctx` 决定了 Attention 计算的序列长度上限：**
+
+```
+n_ctx = 1024 表示最多能处理 1024 个 token 的序列
+
+Attention 计算量 = seq_len × seq_len = n_ctx²
+
+n_ctx=512:  512²  = 262,144 次计算
+n_ctx=1024: 1024² = 1,048,576 次计算  ← 4倍！
+```
+
+**显存消耗也随 n_ctx² 增长：**
+- Attention 权重矩阵: [seq_len, seq_len]
+- n_ctx=512:  512 × 512 × 4字节 = 1MB
+- n_ctx=1024: 1024 × 1024 × 4字节 = 4MB
+
 ### 权重绑定（Weight Tying）
 ```python
 # out_head 的权重与 tok_emb 共享
