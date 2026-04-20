@@ -134,10 +134,6 @@ class GPTGenerator:
                 probs = torch.softmax(logits, dim=-1)
                 next_token = torch.multinomial(probs, num_samples=1).item()
 
-                # 重新计算概率并采样
-                probs = torch.softmax(logits, dim=-1)
-                next_token = torch.multinomial(probs, num_samples=1).item()
-
                 generated_ids.append(next_token)
 
         # 解码并返回
